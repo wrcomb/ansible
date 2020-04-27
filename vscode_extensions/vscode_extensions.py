@@ -30,8 +30,8 @@ RETURN = r'''
 
 from ansible.module_utils.basic import AnsibleModule
 
-def is_install(module, name):
-    CODE_PATH = module.get_bin_path('code-insiders', required=True)
+def is_install(module, name, vscode_command):
+    CODE_PATH = module.get_bin_path(vscode_command, required=True)
     cmd = f"{CODE_PATH} --list-extensions"
     rc, stdout, stderr = module.run_command(cmd)
     if rc != 0:
@@ -42,11 +42,11 @@ def is_install(module, name):
             return True
     return False
 
-def install(module, names):
-    CODE_PATH = module.get_bin_path('code-insiders', required=True)
+def install(module, names, vscode_command):
+    CODE_PATH = module.get_bin_path(vscode_command, required=True)
     extensions = []
     for name in names:
-        if not is_install(module, name):
+        if not is_install(module, name, vscode_command):
             extensions.append(name)
     if not extensions:
         module.exit_json(changed=False, msg="extension(s) already installed")
@@ -57,11 +57,11 @@ def install(module, names):
         module.fail_json(msg=f"failed to enable {' '.join(extensions)}", stdout=stdout, stderr=stderr)
     module.exit_json(changed=True, msg=f"installed vscode extensions: {' '.join(extensions)}")
 
-def uninstall(module, names):
-    CODE_PATH = module.get_bin_path('code-insiders', required=True)
+def uninstall(module, names, vscode_command):
+    CODE_PATH = module.get_bin_path(vscode_command, required=True)
     extensions = []
     for name in names:
-        if is_install(module, name):
+        if is_install(module, name, vscode_command):
             extensions.append(name)
     if not extensions:
         module.exit_json(changed=False, msg="extension(s) already uninstalled")
@@ -76,16 +76,17 @@ def main():
     module = AnsibleModule(
         argument_spec=dict(
             state=dict(type='str', default='installed', choices=['unstalled', 'installed']),
-            name=dict(type='list', required = True)
+            name=dict(type='list', required = True),
+            vscode_command=dict(type='str', default='code')
         )
     )
 
     p = module.params
 
     if p['state'] == 'installed':
-        install(module, p['name'])
+        install(module, p['name'], p['vscode_command'])
     elif p['state'] == 'unstalled':
-        uninstall(module, p['name'])
+        uninstall(module, p['name'], p['vscode_command'])
 
 if __name__ == '__main__':
     main()
